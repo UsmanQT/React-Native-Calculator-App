@@ -16,6 +16,7 @@ import {
 } from "../helpers/fb-history";
 
 import { Feather } from "@expo/vector-icons";
+import { fetchWeatherData, getWeatherData } from "../api/OWServer";
 
 const CalculatorScreen = ({ route, navigation }) => {
   const [state, setState] = useState({
@@ -31,6 +32,9 @@ const CalculatorScreen = ({ route, navigation }) => {
     bearingUnits: "Degrees",
     distanceUnits: "Kilometers"
   });
+
+  const [sourceWeatherData, setsourceWeatherData] = useState(null);
+  const [destWeatherData, setdestWeatherData] = useState(null);
 
   const [history, setHistory] = useState([]);
 
@@ -256,7 +260,21 @@ const CalculatorScreen = ({ route, navigation }) => {
           <Button
             style={styles.buttons}
             title="Calculate"
-            onPress={() => doCalculation(unitState.distanceUnits, unitState.bearingUnits)}
+            onPress={
+              () =>  {
+                 doCalculation(unitState.distanceUnits, unitState.bearingUnits);
+                try {
+                fetchWeatherData(parseFloat(state.lat1),parseFloat(state.lon1), setsourceWeatherData);
+                fetchWeatherData(parseFloat(state.lat2), parseFloat(state.lon2), setdestWeatherData);
+                console.log('source')
+                console.log(sourceWeatherData)
+                console.log('dest')
+                console.log(destWeatherData)
+              } catch (err) {
+                console.log('Error fetching weather data:', err);
+              }
+            }
+          }
           />
         </View>
         <View>
