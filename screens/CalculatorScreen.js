@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  Image
 } from "react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -14,6 +15,42 @@ import {
   setupHistoryListener,
   storeHistoryItem,
 } from "../helpers/fb-history";
+
+const ICONS = {
+
+  img01d: require('../assets/img01d.png'),
+ 
+  img01n: require('../assets/img01n.png'),
+ 
+  img02d: require('../assets/img02d.png'),
+ 
+  img02n: require('../assets/img02n.png'),
+ 
+  img03d: require('../assets/img03d.png'),
+ 
+  img03n: require('../assets/img03n.png'),
+ 
+  img04d: require('../assets/img04d.png'),
+ 
+  img04n: require('../assets/img04n.png'),
+ 
+  img09d: require('../assets/img09d.png'),
+ 
+  img09n: require('../assets/img09n.png'),
+ 
+  img10d: require('../assets/img10d.png'),
+ 
+  img10n: require('../assets/img10n.png'),
+ 
+  img13d: require('../assets/img13d.png'),
+ 
+  img13n: require('../assets/img13n.png'),
+ 
+  img50d: require('../assets/img13d.png'),
+ 
+  img50n: require('../assets/img13n.png'),
+ 
+ };
 
 import { Feather } from "@expo/vector-icons";
 import { fetchWeatherData, getWeatherData } from "../api/OWServer";
@@ -216,6 +253,28 @@ const CalculatorScreen = ({ route, navigation }) => {
     }
   };
 
+  const renderWeather = (weatherData) => {
+    if (weatherData && weatherData.weather && weatherData.weather.length > 0) {
+      if (weatherData.weather[0].icon !== null) {
+        return (
+          <View style={styles.weatherView}>
+            <Image
+              style={{ width: 100, height: 100 }}
+              source={ICONS['img' + weatherData.weather[0].icon]}
+            />
+            <View>
+              <Text style={{ fontSize: 56, fontWeight: 'bold' }}>
+                {round(weatherData.main.temp, 0)}
+              </Text>
+              <Text> {weatherData.weather[0].description} </Text>
+            </View>
+          </View>
+        );
+      }
+    }
+    return <View></View>;
+  };
+
   return (
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={styles.container}>
@@ -292,6 +351,8 @@ const CalculatorScreen = ({ route, navigation }) => {
                 distance: "",
                 bearing: "",
               });
+              setsourceWeatherData(null)
+              setdestWeatherData(null)
             }}
           />
         </View>
@@ -309,6 +370,13 @@ const CalculatorScreen = ({ route, navigation }) => {
             <Text style={styles.resultsValueText}>{state.bearing}</Text>
           </View>
         </View>
+        
+          {sourceWeatherData == null ? '': renderWeather(sourceWeatherData)}
+          
+        
+        
+        {destWeatherData == null ? '': renderWeather(destWeatherData)}
+        
       </View>
     </TouchableWithoutFeedback>
   );
@@ -316,7 +384,7 @@ const CalculatorScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 10,
+    padding: 5,
     backgroundColor: "#E8EAF6",
     flex: 1,
   },
@@ -326,17 +394,19 @@ const styles = StyleSheet.create({
     margin: 10,
   },
   buttons: {
-    padding: 10,
+    paddingBottom: 10,
+    margin: 0
   },
   inputError: {
     color: "red",
   },
   input: {
-    padding: 10,
+    padding: 0
   },
   resultsGrid: {
     borderColor: "#000",
     borderWidth: 1,
+    marginBottom: 10
   },
   resultsRow: {
     flexDirection: "row",
@@ -359,6 +429,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
   },
+  weatherView: {
+    backgroundColor: "#A9E4F9",
+    flexDirection: 'row',
+    marginBottom: 10,
+    height: 90
+    
+  }
 });
 
 export default CalculatorScreen;
