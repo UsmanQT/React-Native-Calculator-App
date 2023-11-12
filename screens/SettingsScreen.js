@@ -1,11 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useContext, useLayoutEffect, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import DropDownPicker from "react-native-dropdown-picker";
-import Padder from "../components/Padder";
+import { CalculatorContext } from '../context/CalculatorContext';
+import DropDownPicker from 'react-native-dropdown-picker';
+import Padder from '../components/Padder';
 
 const SettingsScreen = ({ route, navigation }) => {
-  const { defaultDistanceUnits, defaultBearingUnits } = route.params;
+  const calculatorContext = useContext(CalculatorContext);
+  const defaultUnits = calculatorContext.settings;
+  const defaultDistanceUnits = defaultUnits.distanceUnits;
+  const defaultBearingUnits = defaultUnits.bearingUnits;
+
   const [selectedDistanceUnits, setSelectedDistanceUnits] =
     useState(defaultDistanceUnits);
   const [selectedBearingUnits, setSelectedBearingUnits] =
@@ -14,28 +19,26 @@ const SettingsScreen = ({ route, navigation }) => {
   const [open, setOpen] = useState(false);
   const [open2, setOpen2] = useState(false);
   const [distanceUnits, setDistanceUnits] = useState([
-    { label: "Miles", value: "Miles" },
-    { label: "Kilometers", value: "Kilometers" },
+    { label: 'Miles', value: 'Miles' },
+    { label: 'Kilometers', value: 'Kilometers' },
   ]);
   const [bearingUnits, setBearingUnits] = useState([
-    { label: "Degrees", value: "Degrees" },
-    { label: "Mils", value: "Mils" },
+    { label: 'Degrees', value: 'Degrees' },
+    { label: 'Mils', value: 'Mils' },
   ]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={() => navigation.navigate("Geo Calculator")}>
-          <Text style={styles.headerButton}> Cancel </Text>
-        </TouchableOpacity>
-      ),
-      headerLeft: () => (
         <TouchableOpacity
           onPress={() => {
             // navigate back with new settings.
-            navigation.navigate("Geo Calculator", {
-              selectedDistanceUnits,
-              selectedBearingUnits,
+            calculatorContext.saveSettings({
+              distanceUnits: selectedDistanceUnits,
+              bearingUnits: selectedBearingUnits,
+            });
+            navigation.navigate('Calculator', {
+              reload: `${selectedDistanceUnits}:${selectedBearingUnits}`,
             });
           }}
         >
@@ -79,7 +82,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 4,
     paddingTop: 10,
-    backgroundColor: "#E8EAF6",
+    backgroundColor: '#E8EAF6',
   },
   container: {
     marginHorizontal: 4,
@@ -87,8 +90,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   headerButton: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
 

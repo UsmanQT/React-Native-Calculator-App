@@ -27,7 +27,7 @@ export async function fetchWeatherData(lat, lon, updateState) {
     const response = await fetch(url);
     const data = await response.json();
     updateState(data);
-    console.log(data)
+    //console.log(data)
   }
 
 

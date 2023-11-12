@@ -1,107 +1,98 @@
-import { Button, Input } from "@rneui/themed";
+import { Button, Input } from '@rneui/themed';
 import {
+  Image,
   Keyboard,
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  Image
-} from "react-native";
-import React, { useEffect, useRef, useState } from "react";
+} from 'react-native';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import {
   initHistoryDB,
   setupHistoryListener,
   storeHistoryItem,
-} from "../helpers/fb-history";
+} from '../helpers/fb-history';
+
+import { CalculatorContext } from '../context/CalculatorContext';
+import { Feather } from '@expo/vector-icons';
+import { fetchWeatherData, getWeatherData } from '../api/OWServer';
+import { ScrollView } from 'react-native-gesture-handler';
 
 const ICONS = {
-
   img01d: require('../assets/img01d.png'),
- 
   img01n: require('../assets/img01n.png'),
- 
   img02d: require('../assets/img02d.png'),
- 
   img02n: require('../assets/img02n.png'),
- 
   img03d: require('../assets/img03d.png'),
- 
   img03n: require('../assets/img03n.png'),
- 
   img04d: require('../assets/img04d.png'),
- 
   img04n: require('../assets/img04n.png'),
- 
   img09d: require('../assets/img09d.png'),
- 
   img09n: require('../assets/img09n.png'),
- 
   img10d: require('../assets/img10d.png'),
- 
   img10n: require('../assets/img10n.png'),
- 
   img13d: require('../assets/img13d.png'),
- 
   img13n: require('../assets/img13n.png'),
- 
   img50d: require('../assets/img13d.png'),
- 
   img50n: require('../assets/img13n.png'),
- 
- };
+};
 
-import { Feather } from "@expo/vector-icons";
-import { fetchWeatherData, getWeatherData } from "../api/OWServer";
-
-const CalculatorScreen = ({ route, navigation }) => {
+const CalculatorScreen = ({ route }) => {
+  const calculatorContext = useContext(CalculatorContext);
+  //console.log('Context: ', calculatorContext);
+ // console.log('ENDCONTEXT');
   const [state, setState] = useState({
-    lat1: "",
-    lon1: "",
-    lat2: "",
-    lon2: "",
-    distance: "",
-    bearing: "",
+    lat1: '',
+    lon1: '',
+    lat2: '',
+    lon2: '',
+    distance: '',
+    bearing: '',
   });
 
   const [unitState, setUnitState] = useState({
-    bearingUnits: "Degrees",
-    distanceUnits: "Kilometers"
+    bearingUnits: calculatorContext.settings.bearingUnits,
+    distanceUnits: calculatorContext.settings.distanceUnits,
   });
 
-  const [sourceWeatherData, setsourceWeatherData] = useState(null);
-  const [destWeatherData, setdestWeatherData] = useState(null);
+  console.log('UnitState: ', unitState.bearingUnits, unitState.distanceUnits);
+  console.log('Route.Params = ', route.params);
 
-  const [history, setHistory] = useState([]);
+  const [sourceWeather, setSourceWeather] = useState({
+    description: '',
+    icon: '',
+    temperature: '',
+  });
+
+  const [destWeather, setDestWeather] = useState({
+    description: '',
+    icon: '',
+    temperature: '',
+  });
 
   const initialField = useRef(null);
 
   useEffect(() => {
+    console.log('OneShot');
     try {
       initHistoryDB();
     } catch (err) {
       console.log(err);
     }
     setupHistoryListener((items) => {
-      setHistory(items);
+      calculatorContext.saveHistoryItems(items);
     });
   }, []);
 
   useEffect(() => {
-    if (route.params?.selectedDistanceUnits) {
-      console.log(
-        "setting values",
-        route.params.selectedDistanceUnits,
-        route.params.selectedBearingUnits
-      );
-      setUnitState({bearingUnits: route.params.selectedBearingUnits, distanceUnits: route.params.selectedDistanceUnits});
-      doCalculation(
-        route.params.selectedDistanceUnits,
-        route.params.selectedBearingUnits
-      );
-    }
+    console.log('WhenSettingsSaved');
     if (route.params?.selectedItem) {
+      setUnitState({
+        distanceUnits: route.params?.selectedItem.dUnits,
+        bearingUnits: route.params?.selectedItem.bUnits,
+      });
       var p1 = route.params?.selectedItem.p1;
       var p2 = route.params?.selectedItem.p2;
       setState({
@@ -111,38 +102,47 @@ const CalculatorScreen = ({ route, navigation }) => {
         lon2: `${p2.lon}`,
       });
     }
-  }, [route.params?.selectedDistanceUnits, route.params?.selectedBearingUnits, route.params?.selectedItem]);
+    console.log('item changed ', state.lat1)
+    if (route.params?.reload) {
+      setUnitState(calculatorContext.settings);
+      doCalculation(
+        calculatorContext.settings.distanceUnits,
+        calculatorContext.settings.bearingUnits
+      );
+    }
+  }, [route.params?.reload, route.params?.selectedItem]);
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate("History", { currentHistory: history })
-          }
-        >
-          <Text style={styles.headerButton}> History </Text>
-        </TouchableOpacity>
-      ),
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() =>
-            navigation.navigate("Settings", {
-              defaultDistanceUnits: unitState.distanceUnits,
-              defaultBearingUnits: unitState.bearingUnits,
-            })
-          }
-        >
-          <Feather
-            style={{ marginRight: 10 }}
-            name="settings"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
-      ),
-    });
-  });
+  // useEffect(() => {
+  //   if (route.params?.selectedDistanceUnits) {
+  //     console.log(
+  //       'setting values',
+  //       route.params.selectedDistanceUnits,
+  //       route.params.selectedBearingUnits
+  //     );
+  //     setUnitState({
+  //       bearingUnits: route.params.selectedBearingUnits,
+  //       distanceUnits: route.params.selectedDistanceUnits,
+  //     });
+  //     doCalculation(
+  //       route.params.selectedDistanceUnits,
+  //       route.params.selectedBearingUnits
+  //     );
+  //   }
+  //   if (route.params?.selectedItem) {
+  //     var p1 = route.params?.selectedItem.p1;
+  //     var p2 = route.params?.selectedItem.p2;
+  //     setState({
+  //       lat1: `${p1.lat}`,
+  //       lon1: `${p1.lon}`,
+  //       lat2: `${p2.lat}`,
+  //       lon2: `${p2.lon}`,
+  //     });
+  //   }
+  // }, [
+  //   route.params?.selectedDistanceUnits,
+  //   route.params?.selectedBearingUnits,
+  //   route.params?.selectedItem,
+  // ]);
 
   // Converts from degrees to radians.
   function toRadians(degrees) {
@@ -189,11 +189,11 @@ const CalculatorScreen = ({ route, navigation }) => {
   }
 
   function round(value, decimals) {
-    return Number(Math.round(value + "e" + decimals) + "e-" + decimals);
+    return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
   }
 
   function validate(value) {
-    return isNaN(value) ? "Must be a number" : "";
+    return isNaN(value) ? 'Must be a number' : '';
   }
 
   function formValid(vals) {
@@ -205,10 +205,10 @@ const CalculatorScreen = ({ route, navigation }) => {
     ) {
       return false;
     } else if (
-      vals.lat1 === "" ||
-      vals.lon1 === "" ||
-      vals.lat2 === "" ||
-      vals.lon2 === ""
+      vals.lat1 === '' ||
+      vals.lon1 === '' ||
+      vals.lat2 === '' ||
+      vals.lon2 === ''
     ) {
       return false;
     } else {
@@ -217,6 +217,7 @@ const CalculatorScreen = ({ route, navigation }) => {
   }
 
   function doCalculation(dUnits, bUnits) {
+    console.log('Calculating with: ', dUnits, bUnits);
     if (formValid(state)) {
       var p1 = {
         lat: parseFloat(state.lat1),
@@ -229,13 +230,29 @@ const CalculatorScreen = ({ route, navigation }) => {
 
       var dist = computeDistance(p1.lat, p1.lon, p2.lat, p2.lon);
       var bear = computeBearing(p1.lat, p1.lon, p2.lat, p2.lon);
-      const dConv = dUnits === "Kilometers" ? 1.0 : 0.621371;
-      const bConv = bUnits === "Degrees" ? 1.0 : 17.777777777778;
+      const dConv = dUnits === 'Kilometers' ? 1.0 : 0.621371;
+      const bConv = bUnits === 'Degrees' ? 1.0 : 17.777777777778;
       updateStateObject({
         distance: `${round(dist * dConv, 3)} ${dUnits}`,
         bearing: `${round(bear * bConv, 3)} ${bUnits}`,
       });
       storeHistoryItem({ p1, p2, dUnits, bUnits, timestamp: Date.now() });
+      fetchWeatherData(p1.lat, p1.lon, (data) => {
+        //console.log('Source Weather: ', data);
+        setSourceWeather({
+          description: data.weather[0].description,
+          icon: data.weather[0].icon,
+          temperature: data.main.temp,
+        });
+      });
+      fetchWeatherData(p2.lat, p2.lon, (data) => {
+        //console.log('Destination Weather: ', data);
+        setDestWeather({
+          description: data.weather[0].description,
+          icon: data.weather[0].icon,
+          temperature: data.main.temp,
+        });
+      });
     }
   }
 
@@ -248,39 +265,39 @@ const CalculatorScreen = ({ route, navigation }) => {
 
   const dismissKeyboard = () => {
     console.log(Platform.OS);
-    if (Platform.OS != "web") {
+    if (Platform.OS != 'web') {
       Keyboard.dismiss();
     }
   };
 
-  const renderWeather = (weatherData) => {
-    if (weatherData && weatherData.weather && weatherData.weather.length > 0) {
-      if (weatherData.weather[0].icon !== null) {
-        return (
-          <View style={styles.weatherView}>
-            <Image
-              style={{ width: 100, height: 100 }}
-              source={ICONS['img' + weatherData.weather[0].icon]}
-            />
-            <View>
-              <Text style={{ fontSize: 56, fontWeight: 'bold' }}>
-                {round(weatherData.main.temp, 0)}
-              </Text>
-              <Text> {weatherData.weather[0].description} </Text>
-            </View>
+  const renderWeather = (weather) => {
+    if (weather.icon === '') {
+      return <View></View>;
+    } else {
+      return (
+        <View style={styles.weatherView}>
+          <Image
+            style={{ width: 100, height: 100 }}
+            source={ICONS['img' + weather.icon]}
+          />
+          <View>
+            <Text style={{ fontSize: 56, fontWeight: 'bold' }}>
+              {round(weather.temperature, 0)}
+            </Text>
+            <Text> {weather.description} </Text>
           </View>
-        );
-      }
+        </View>
+      );
     }
-    return <View></View>;
   };
 
   return (
+    <ScrollView>
     <TouchableWithoutFeedback onPress={dismissKeyboard}>
       <View style={styles.container}>
         <Input
           style={styles.input}
-          placeholder="Enter latitude for point 1"
+          placeholder='Enter latitude for point 1'
           ref={initialField}
           value={state.lat1}
           autoCorrect={false}
@@ -290,7 +307,7 @@ const CalculatorScreen = ({ route, navigation }) => {
         />
         <Input
           style={styles.input}
-          placeholder="Enter longitude for point 1"
+          placeholder='Enter longitude for point 1'
           value={state.lon1}
           autoCorrect={false}
           errorStyle={styles.inputError}
@@ -299,7 +316,7 @@ const CalculatorScreen = ({ route, navigation }) => {
         />
         <Input
           style={styles.input}
-          placeholder="Enter latitude for point 2"
+          placeholder='Enter latitude for point 2'
           value={state.lat2}
           autoCorrect={false}
           errorStyle={styles.inputError}
@@ -308,7 +325,7 @@ const CalculatorScreen = ({ route, navigation }) => {
         />
         <Input
           style={styles.input}
-          placeholder="Enter longitude for point 2"
+          placeholder='Enter longitude for point 2'
           value={state.lon2}
           autoCorrect={false}
           errorStyle={styles.inputError}
@@ -318,41 +335,34 @@ const CalculatorScreen = ({ route, navigation }) => {
         <View>
           <Button
             style={styles.buttons}
-            title="Calculate"
-            onPress={
-              () =>  {
-                 doCalculation(unitState.distanceUnits, unitState.bearingUnits);
-                try {
-                fetchWeatherData(parseFloat(state.lat1),parseFloat(state.lon1), setsourceWeatherData);
-                fetchWeatherData(parseFloat(state.lat2), parseFloat(state.lon2), setdestWeatherData);
-                console.log('source')
-                console.log(sourceWeatherData)
-                console.log('dest')
-                console.log(destWeatherData)
-              } catch (err) {
-                console.log('Error fetching weather data:', err);
-              }
+            title='Calculate'
+            onPress={() =>
+              doCalculation(unitState.distanceUnits, unitState.bearingUnits)
             }
-          }
           />
         </View>
         <View>
           <Button
             style={styles.buttons}
-            title="Clear"
+            title='Clear'
             onPress={() => {
               //initialField.current.focus();
               Keyboard.dismiss();
               setState({
-                lat1: "",
-                lon1: "",
-                lat2: "",
-                lon2: "",
-                distance: "",
-                bearing: "",
+                lat1: '',
+                lon1: '',
+                lat2: '',
+                lon2: '',
+                distance: '',
+                bearing: '',
               });
-              setsourceWeatherData(null)
-              setdestWeatherData(null)
+              const clearWeather = {
+                description: '',
+                icon: '',
+                temperature: '',
+              };
+              setSourceWeather(clearWeather);
+              setDestWeather(clearWeather);
             }}
           />
         </View>
@@ -370,72 +380,64 @@ const CalculatorScreen = ({ route, navigation }) => {
             <Text style={styles.resultsValueText}>{state.bearing}</Text>
           </View>
         </View>
-        
-          {sourceWeatherData == null ? '': renderWeather(sourceWeatherData)}
-          
-        
-        
-        {destWeatherData == null ? '': renderWeather(destWeatherData)}
-        
+        {renderWeather(sourceWeather)}
+        {renderWeather(destWeather)}
       </View>
     </TouchableWithoutFeedback>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 5,
-    backgroundColor: "#E8EAF6",
+    padding: 10,
+    backgroundColor: '#E8EAF6',
     flex: 1,
   },
+  weatherView: {
+    backgroundColor: 'lightblue',
+    flexDirection: 'row',
+    marginTop: 20,
+  },
   headerButton: {
-    color: "#fff",
-    fontWeight: "bold",
+    color: '#fff',
+    fontWeight: 'bold',
     margin: 10,
   },
   buttons: {
-    paddingBottom: 10,
-    margin: 0
+    padding: 10,
   },
   inputError: {
-    color: "red",
+    color: 'red',
   },
   input: {
-    padding: 0
+    padding: 10,
   },
   resultsGrid: {
-    borderColor: "#000",
+    borderColor: '#000',
     borderWidth: 1,
-    marginBottom: 10
   },
   resultsRow: {
-    flexDirection: "row",
-    borderColor: "#000",
+    flexDirection: 'row',
+    borderColor: '#000',
     borderBottomWidth: 1,
   },
   resultsLabelContainer: {
     borderRightWidth: 1,
-    borderRightColor: "#000",
+    borderRightColor: '#000',
     flex: 1,
   },
   resultsLabelText: {
-    fontWeight: "bold",
+    fontWeight: 'bold',
     fontSize: 20,
     padding: 10,
   },
   resultsValueText: {
-    fontWeight: "bold",
+    fontWeight: 'bold',
     fontSize: 20,
     flex: 1,
     padding: 10,
   },
-  weatherView: {
-    backgroundColor: "#A9E4F9",
-    flexDirection: 'row',
-    marginBottom: 10,
-    height: 90
-    
-  }
 });
 
 export default CalculatorScreen;
